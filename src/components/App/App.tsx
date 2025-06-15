@@ -11,13 +11,13 @@ import NoteModal from "../NoteModal/NoteModal";
 export default function App() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [debauncedQuery] = useDebounce(search, 1000);
+  const [debauncedQuery] = useDebounce(search, 500);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const perPage = 12;
 
   const { data, isSuccess } = useQuery({
     queryKey: ["myNotes", debauncedQuery, page],
-    queryFn: () => fetchNotes(search, page, perPage),
+    queryFn: () => fetchNotes(debauncedQuery, page, perPage),
     placeholderData: keepPreviousData,
   });
 
