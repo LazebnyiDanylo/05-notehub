@@ -1,45 +1,47 @@
-import "./App.module.css";
+import css from "./App.module.css";
 import { useState } from "react";
-import { Movie } from "../../types/movie";
-import { fetchMovies } from "../../services/movieService";
-import toast from "react-hot-toast";
-import SearchBar from "../SearchBar/SearchBar";
-import MovieGrid from "../MovieGrid/MovieGrid";
-import Loader from "../Loader/Loader";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import MovieModal from "../MovieModal/MovieModal";
+import { useDebounce } from "use-debounce";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { fetchNotes } from "../../services/noteService";
+import SearchBox from "../SearchBox/SearchBox";
+import Pagination from "../Pagination/Pagination";
+import NoteList from "../NoteList/NoteList";
+import NoteModal from "../NoteModal/NoteModal";
 
 export default function App() {
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isError, setIsError] = useState(false);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [debauncedQuery] = useDebounce(search, 1000);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const perPage = 12;
 
-  const handleSearch = async (topic: string) => {
-    try {
-      setMovies([]);
-      setIsLoading(true);
-      const data = await fetchMovies(topic);
-      setMovies(data);
-      if (data.length === 0) {
-        toast.error("No movies found for your request.");
-      }
-    } catch {
-      setIsError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  const handleSelect = (selectedMovie: Movie) => setSelectedMovie(selectedMovie);
-  const modalClose = () => setSelectedMovie(null);
+  const { data, isSuccess } = useQuery({
+    queryKey: ["myNotes", debauncedQuery, page],
+    queryFn: () => fetchNotes(search, page, perPage),
+    placeholderData: keepPreviousData,
+  });
+
+  function handleSearch(search: string) {
+    setSearch(search);
+    setPage(1);
+  }
 
   return (
-    <>
-      <SearchBar onSubmit={handleSearch} />
-      {isLoading && <Loader />}
-      {isError && <ErrorMessage />}
-      {movies.length > 0 && <MovieGrid onSelect={handleSelect} movies={movies} />}
-      {selectedMovie && <MovieModal movie={selectedMovie} onClose={modalClose} />}
-    </>
+    <div className={css.app}>
+      <header className={css.toolbar}>
+        <SearchBox onSearch={handleSearch} value={search} />
+        {isSuccess && data.totalPages > 1 && <Pagination totalPages={data.totalPages} currentPage={page} onPageChange={setPage} />}
+        <button
+          className={css.button}
+          onClick={() => {
+            setIsModalOpen(true);
+          }}
+        >
+          Create note +
+        </button>
+      </header>
+      {isSuccess && data.notes.length > 0 && <NoteList notes={data.notes} />}
+      {isModalOpen && <NoteModal onClose={() => setIsModalOpen(false)} />}
+    </div>
   );
 }
