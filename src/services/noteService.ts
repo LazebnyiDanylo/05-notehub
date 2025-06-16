@@ -4,24 +4,23 @@ import type { Note } from "../types/note";
 interface FetchNoteResponse {
   notes: Note[];
   totalPages: number;
-  page: number;
 }
 
 interface NewNote {
   title: string;
   content?: string;
-  tag: "Todo" | "Work" | "Personal" | "Meeting" | "Shopping";
+  tag: string;
 }
 
 const myApiKey = import.meta.env.VITE_NOTEHUB_TOKEN;
 axios.defaults.baseURL = "https://notehub-public.goit.study/api/notes";
 axios.defaults.headers.common["Authorization"] = `Bearer ${myApiKey}`;
 
-export async function fetchNotes(searchText: string, page: number, perPage: number): Promise<FetchNoteResponse> {
+export async function fetchNotes(searchText: string, page: number): Promise<FetchNoteResponse> {
   const { data } = await axios.get<FetchNoteResponse>("", {
     params: {
       page,
-      perPage,
+      perPage: 12,
       ...(searchText !== "" ? { search: searchText } : {}),
     },
   });
